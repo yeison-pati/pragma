@@ -1,0 +1,126 @@
+# Docker Compose para un Entorno de Microservicios
+#
+# Este archivo define y orquesta todos los servicios necesarios para correr
+# la aplicación completa localmente, incluyendo:
+# - Dos servicios de aplicación (user-service, order-service)
+# - Bases de datos (PostgreSQL, MongoDB)
+# - Caché (Redis)
+# - Bróker de Mensajería (Kafka + Zookeeper)
+#
+version: '3.8'
+
+services:
+  # --- BASES DE DATOS ---
+
+  # Servicio de la base de datos relacional PostgreSQL para user-service
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: interview_project_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # Servicio de la base de datos NoSQL MongoDB para order-service
+  mongo:
+    image: mongo:7.0
+    container_name: mongo_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+
+  # --- INFRAESTRUCTURA DE MENSAJERÍA Y CACHÉ ---
+
+  # Servicio de la caché en memoria Redis
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  # Zookeeper (requerido por Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - app-network
+
+  # Bróker de Kafka para comunicación asíncrona entre servicios
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka_broker
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - app-network
+
+  # --- MICROSERVICIOS DE LA APLICACIÓN ---
+
+  # Microservicio de Usuarios (Spring MVC, JPA, PostgreSQL)
+  user-service:
+    container_name: user_service_app
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - kafka
+    ports:
+      - "8081:8081" # Puerto expuesto para el user-service
+    networks:
+      - app-network
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - REDIS_HOST=redis
+
+  # Microservicio de Órdenes (Spring WebFlux, Reactive MongoDB)
+  order-service:
+    container_name: order_service_app
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo
+      - kafka
+    ports:
+      - "8082:8082" # Puerto expuesto para el order-service
+    networks:
+      - app-network
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - REDIS_HOST=redis
+
+
+# Volúmenes para persistir los datos de las bases de datos
+volumes:
+  postgres_data:
+  mongo_data:
+
+# Red compartida para que todos los contenedores se comuniquen entre sí por su nombre de servicio
+networks:
+  app-network:
+    driver: bridge

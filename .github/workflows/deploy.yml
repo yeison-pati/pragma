@@ -1,0 +1,121 @@
+name: Deploy to Amazon ECS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy-ecr:
+    name: "Phase 1: Deploy ECR Repositories"
+    runs-on: ubuntu-latest
+    outputs:
+      user_service_ecr_repo_url: ${{ steps.ecr.outputs.user_service_repository_url }}
+      order_service_ecr_repo_url: ${{ steps.ecr.outputs.order_service_repository_url }}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Configure AWS credentials"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: "Setup Terraform"
+        uses: hashicorp/setup-terraform@v2
+
+      - name: "Terraform Init"
+        id: init
+        run: terraform -chdir=infrastructure init
+
+      - name: "Terraform Apply ECR"
+        id: apply-ecr
+        run: terraform -chdir=infrastructure apply -auto-approve -target="module.ecr"
+
+      - name: "Get ECR Repository URLs"
+        id: ecr
+        run: |
+          USER_SERVICE_URL=$(terraform -chdir=infrastructure output -raw user_service_repository_url)
+          ORDER_SERVICE_URL=$(terraform -chdir=infrastructure output -raw order_service_repository_url)
+          echo "user_service_repository_url=$USER_SERVICE_URL" >> $GITHUB_OUTPUT
+          echo "order_service_repository_url=$ORDER_SERVICE_URL" >> $GITHUB_OUTPUT
+
+  build-and-push-images:
+    name: "Phase 2: Build and Push Docker Images"
+    needs: deploy-ecr
+    runs-on: ubuntu-latest
+    outputs:
+      user_service_image_url: ${{ steps.build-user-service.outputs.image_url }}
+      order_service_image_url: ${{ steps.build-order-service.outputs.image_url }}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Configure AWS credentials"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: "Login to Amazon ECR"
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: "Build, tag, and push user-service image"
+        id: build-user-service
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REPOSITORY_URL: ${{ needs.deploy-ecr.outputs.user_service_ecr_repo_url }}
+        run: |
+          docker build -t $ECR_REPOSITORY_URL:$IMAGE_TAG ./user-service
+          docker tag $ECR_REPOSITORY_URL:$IMAGE_TAG $ECR_REPOSITORY_URL:latest
+          docker push $ECR_REPOSITORY_URL --all-tags
+          echo "image_url=${ECR_REPOSITORY_URL}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: "Build, tag, and push order-service image"
+        id: build-order-service
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REPOSITORY_URL: ${{ needs.deploy-ecr.outputs.order_service_ecr_repo_url }}
+        run: |
+          docker build -t $ECR_REPOSITORY_URL:$IMAGE_TAG ./order-service
+          docker tag $ECR_REPOSITORY_URL:$IMAGE_TAG $ECR_REPOSITORY_URL:latest
+          docker push $ECR_REPOSITORY_URL --all-tags
+          echo "image_url=${ECR_REPOSITORY_URL}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+  deploy-main-infra:
+    name: "Phase 3: Deploy Databases & Services"
+    needs: build-and-push-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Configure AWS credentials"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: "Setup Terraform"
+        uses: hashicorp/setup-terraform@v2
+
+      - name: "Terraform Init"
+        id: init
+        run: terraform -chdir=infrastructure init
+
+      - name: "Terraform Apply All"
+        id: apply-all
+        run: |
+          terraform -chdir=infrastructure apply -auto-approve \
+          -var="user_service_image_url=${{ needs.build-and-push-images.outputs.user_service_image_url }}" \
+          -var="order_service_image_url=${{ needs.build-and-push-images.outputs.order_service_image_url }}"
