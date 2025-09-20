@@ -59,8 +59,6 @@ resource "aws_security_group" "ecs_tasks" {
   }
 }
 
-# ECR Module removed - using Docker Hub instead
-
 # ----------------------------------------------------------------
 # ALB Module
 # ----------------------------------------------------------------
@@ -86,8 +84,6 @@ module "rds" {
   db_username           = var.postgres_username
   db_password           = var.postgres_password
 }
-
-# MongoDB and PostgreSQL credentials from secrets
 
 # ----------------------------------------------------------------
 # Service Discovery
@@ -341,9 +337,9 @@ resource "aws_ecs_task_definition" "user_service" {
       { name = "SPRING_DATASOURCE_URL", value = "jdbc:postgresql://${module.rds.endpoint}/${module.rds.db_name}" },
       { name = "SPRING_DATASOURCE_USERNAME", value = var.postgres_username },
       { name = "SPRING_DATASOURCE_PASSWORD", value = var.postgres_password },
-      { name = "SPRING_DATA_REDIS_HOST", value = "${var.redis_host}.${var.project_name}.local" },
+      { name = "SPRING_DATA_REDIS_HOST", value = "redis.${var.project_name}.local" },
       { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.redis_port) },
-      { name = "KAFKA_BOOTSTRAP_SERVERS", value = "${var.kafka_host}.${var.project_name}.local:${var.kafka_port}" }
+      { name = "KAFKA_BOOTSTRAP_SERVERS", value = "kafka.${var.project_name}.local:${var.kafka_port}" }
     ]
     logConfiguration = {
       logDriver = "awslogs"
@@ -397,10 +393,10 @@ resource "aws_ecs_task_definition" "order_service" {
       containerPort = 8082
     }]
     environment = [
-      { name = "SPRING_DATA_MONGODB_URI", value = "mongodb://${var.mongodb_username}:${var.mongodb_password}@${var.mongodb_host}.${var.project_name}.local:${var.mongodb_port}/orders?authSource=admin" },
-      { name = "SPRING_DATA_REDIS_HOST", value = "${var.redis_host}.${var.project_name}.local" },
+      { name = "SPRING_DATA_MONGODB_URI", value = "mongodb://${var.mongodb_username}:${var.mongodb_password}@mongodb.${var.project_name}.local:${var.mongodb_port}/orders?authSource=admin" },
+      { name = "SPRING_DATA_REDIS_HOST", value = "redis.${var.project_name}.local" },
       { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.redis_port) },
-      { name = "KAFKA_BOOTSTRAP_SERVERS", value = "${var.kafka_host}.${var.project_name}.local:${var.kafka_port}" }
+      { name = "KAFKA_BOOTSTRAP_SERVERS", value = "kafka.${var.project_name}.local:${var.kafka_port}" }
     ]
     logConfiguration = {
       logDriver = "awslogs"

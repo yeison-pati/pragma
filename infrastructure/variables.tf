@@ -64,7 +64,7 @@ variable "mongodb_password" {
 variable "redis_host" {
   description = "Redis host endpoint"
   type        = string
-  default     = "redis"
+  default     = "localhost"
 }
 
 variable "redis_port" {
@@ -76,7 +76,7 @@ variable "redis_port" {
 variable "kafka_host" {
   description = "Kafka host endpoint"
   type        = string
-  default     = "kafka"
+  default     = "localhost"
 }
 
 variable "kafka_port" {
@@ -88,7 +88,7 @@ variable "kafka_port" {
 variable "mongodb_host" {
   description = "MongoDB host endpoint"
   type        = string
-  default     = "mongodb"
+  default     = "localhost"
 }
 
 variable "mongodb_port" {
