@@ -3,6 +3,7 @@ resource "random_string" "username" {
   length  = 8
   special = false
   upper   = false
+  numeric = false
 }
 
 resource "random_password" "password" {

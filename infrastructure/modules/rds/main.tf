@@ -3,6 +3,7 @@ resource "random_string" "username" {
   length  = 8
   special = false
   upper   = false
+  numeric = false
 }
 
 resource "random_password" "password" {
@@ -53,7 +54,7 @@ resource "aws_db_instance" "default" {
   allocated_storage      = 20
   storage_type           = "gp2"
   engine                 = "postgres"
-  engine_version         = "13.4"
+  engine_version         = "15.8"
   instance_class         = "db.t3.micro"
   db_name                = var.db_name
   username               = random_string.username.result
