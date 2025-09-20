@@ -222,7 +222,9 @@ resource "aws_ecs_task_definition" "kafka" {
       { name = "KAFKA_BROKER_ID", value = "1" },
       { name = "KAFKA_ZOOKEEPER_CONNECT", value = "localhost:2181" },
       { name = "KAFKA_ADVERTISED_LISTENERS", value = "PLAINTEXT://localhost:9092" },
-      { name = "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", value = "1" }
+      { name = "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", value = "1" },
+      { name = "KAFKA_PROCESS_ROLES", value = "broker" },
+      { name = "KAFKA_CONTROLLER_QUORUM_VOTERS", value = "" }
     ]
     logConfiguration = {
       logDriver = "awslogs"
