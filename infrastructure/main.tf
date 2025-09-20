@@ -224,7 +224,8 @@ resource "aws_ecs_task_definition" "kafka" {
       { name = "KAFKA_ADVERTISED_LISTENERS", value = "PLAINTEXT://localhost:9092" },
       { name = "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", value = "1" },
       { name = "KAFKA_PROCESS_ROLES", value = "broker" },
-      { name = "KAFKA_CONTROLLER_QUORUM_VOTERS", value = "" }
+      { name = "KAFKA_CONTROLLER_QUORUM_VOTERS", value = "" },
+      { name = "CLUSTER_ID", value = "MkU3OEVBNTcwNTJENDM2Qk" }
     ]
     logConfiguration = {
       logDriver = "awslogs"
@@ -336,12 +337,15 @@ resource "aws_ecs_task_definition" "user_service" {
       containerPort = 8081
     }]
     environment = [
-      { name = "SPRING_DATASOURCE_URL", value = "jdbc:postgresql://${module.rds.endpoint}/${module.rds.db_name}" },
-      { name = "SPRING_DATASOURCE_USERNAME", value = var.postgres_username },
-      { name = "SPRING_DATASOURCE_PASSWORD", value = var.postgres_password },
-      { name = "SPRING_DATA_REDIS_HOST", value = "redis.${var.project_name}.local" },
-      { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.redis_port) },
-      { name = "SPRING_KAFKA_BOOTSTRAP_SERVERS", value = "kafka.${var.project_name}.local:${var.kafka_port}" },
+      { name = "POSTGRES_HOST", value = split(":", module.rds.endpoint)[0] },
+      { name = "POSTGRES_PORT", value = "5432" },
+      { name = "POSTGRES_USERNAME", value = var.postgres_username },
+      { name = "POSTGRES_PASSWORD", value = var.postgres_password },
+      { name = "POSTGRES_DB", value = module.rds.db_name },
+      { name = "REDIS_HOST", value = "redis.${var.project_name}.local" },
+      { name = "REDIS_PORT", value = tostring(var.redis_port) },
+      { name = "KAFKA_HOST", value = "kafka.${var.project_name}.local" },
+      { name = "KAFKA_PORT", value = tostring(var.kafka_port) },
       { name = "APPLICATION_SECURITY_JWT_SECRET_KEY", value = var.jwt_secret_key }
     ]
     logConfiguration = {
@@ -396,10 +400,15 @@ resource "aws_ecs_task_definition" "order_service" {
       containerPort = 8082
     }]
     environment = [
-      { name = "SPRING_DATA_MONGODB_URI", value = "mongodb://${var.mongodb_username}:${var.mongodb_password}@mongodb.${var.project_name}.local:${var.mongodb_port}/orders?authSource=admin" },
-      { name = "SPRING_DATA_REDIS_HOST", value = "redis.${var.project_name}.local" },
-      { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.redis_port) },
-      { name = "SPRING_KAFKA_BOOTSTRAP_SERVERS", value = "kafka.${var.project_name}.local:${var.kafka_port}" },
+      { name = "MONGODB_HOST", value = "mongodb.${var.project_name}.local" },
+      { name = "MONGODB_PORT", value = tostring(var.mongodb_port) },
+      { name = "MONGODB_USERNAME", value = var.mongodb_username },
+      { name = "MONGODB_PASSWORD", value = var.mongodb_password },
+      { name = "MONGODB_DATABASE", value = "orders" },
+      { name = "REDIS_HOST", value = "redis.${var.project_name}.local" },
+      { name = "REDIS_PORT", value = tostring(var.redis_port) },
+      { name = "KAFKA_HOST", value = "kafka.${var.project_name}.local" },
+      { name = "KAFKA_PORT", value = tostring(var.kafka_port) },
       { name = "APPLICATION_SECURITY_JWT_SECRET_KEY", value = var.jwt_secret_key }
     ]
     logConfiguration = {
