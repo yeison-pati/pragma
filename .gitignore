@@ -48,7 +48,10 @@ LICENSE.txt
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl
+terraform.tfvars
 
 # personal files
 *.txt
 outputs.json
+
+.gitignore
