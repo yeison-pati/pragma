@@ -115,7 +115,4 @@ jobs:
 
       - name: "Terraform Apply All"
         id: apply-all
-        run: |
-          terraform -chdir=infrastructure apply -auto-approve \
-          -var="user_service_image_url=${{ needs.build-and-push-images.outputs.user_service_image_url }}" \
-          -var="order_service_image_url=${{ needs.build-and-push-images.outputs.order_service_image_url }}"
+        run: terraform -chdir=infrastructure apply -auto-approve

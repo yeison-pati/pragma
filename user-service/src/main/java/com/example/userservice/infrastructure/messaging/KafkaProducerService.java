@@ -13,8 +13,9 @@ public class KafkaProducerService {
 
     private final KafkaTemplate<String, UserEvent> kafkaTemplate;
 
+    private String topic = "user-events";
     public void sendUserEvent(UserEvent event) {
-        kafkaTemplate.send("user-events", event.getId().toString(), event);
+        kafkaTemplate.send(topic, event.getId().toString(), event);
         log.info(" Published event to Kafka: {}", event);
     }
 }
