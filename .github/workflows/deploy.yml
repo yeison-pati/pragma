@@ -44,13 +44,21 @@ jobs:
           terraform -chdir=infrastructure import module.ecr.aws_ecr_repository.order_service order-service || true
           terraform -chdir=infrastructure apply -auto-approve -target="module.ecr"
 
-      - name: "Get ECR Repository URLs"
-        id: ecr
+      - name: "Get Terraform Outputs"
         run: |
-          USER_SERVICE_URL=$(cd infrastructure && terraform output -raw user_service_repository_url)
-          ORDER_SERVICE_URL=$(cd infrastructure && terraform output -raw order_service_repository_url)
-          echo "user_service_repository_url=$USER_SERVICE_URL" >> $GITHUB_OUTPUT
-          echo "order_service_repository_url=$ORDER_SERVICE_URL" >> $GITHUB_OUTPUT
+          terraform -chdir=infrastructure output -json > tf_outputs.json
+          if [[ ! -s tf_outputs.json ]]; then
+            echo "Error: tf_outputs.json is empty or doesn't exist"
+            exit 1
+          fi
+          echo "Terraform outputs saved successfully"
+
+      - name: "Upload tf_outputs.json"
+        uses: actions/upload-artifact@v4
+        with:
+          name: tf_outputs
+          path: tf_outputs.json
+          retention-days: 1
 
   build-and-push-images:
     name: "Phase 2: Build and Push Docker Images"
@@ -69,6 +77,11 @@ jobs:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: "Download tf_outputs.json"
+        uses: actions/download-artifact@v4
+        with:
+          name: tf_outputs
+
       - name: "Login to Amazon ECR"
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -77,9 +90,8 @@ jobs:
         id: build-user-service
         env:
           IMAGE_TAG: ${{ github.sha }}
-          ECR_REPOSITORY_URL: ${{ needs.deploy-ecr.outputs.user_service_ecr_repo_url }}
         run: |
-          ECR_URL=$(echo "$ECR_REPOSITORY_URL" | cut -d':' -f1)
+          ECR_URL=$(jq -r '.user_service_repository_url.value' tf_outputs.json)
           docker build -t $ECR_URL:$IMAGE_TAG ./user-service
           docker tag $ECR_URL:$IMAGE_TAG $ECR_URL:latest
           docker push $ECR_URL --all-tags
@@ -89,9 +101,8 @@ jobs:
         id: build-order-service
         env:
           IMAGE_TAG: ${{ github.sha }}
-          ECR_REPOSITORY_URL: ${{ needs.deploy-ecr.outputs.order_service_ecr_repo_url }}
         run: |
-          ECR_URL=$(echo "$ECR_REPOSITORY_URL" | cut -d':' -f1)
+          ECR_URL=$(jq -r '.order_service_repository_url.value' tf_outputs.json)
           docker build -t $ECR_URL:$IMAGE_TAG ./order-service
           docker tag $ECR_URL:$IMAGE_TAG $ECR_URL:latest
           docker push $ECR_URL --all-tags
