@@ -1,0 +1,6 @@
+docker_username = "dummy"
+postgres_username = "dummy"
+postgres_password = "dummy"
+mongodb_username = "dummy"
+mongodb_password = "dummy"
+jwt_secret_key = "dummy"

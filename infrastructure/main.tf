@@ -207,24 +207,28 @@ resource "aws_ecs_task_definition" "kafka" {
   family                   = "kafka"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 512
-  memory                   = 1024
+  cpu                      = 1024
+  memory                   = 2048
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([{
     name      = "kafka"
-    image     = "confluentinc/cp-kafka:latest"
+    image     = "apache/kafka:3.7.0"
     essential = true
     portMappings = [{
       containerPort = 9092
     }]
     environment = [
-      { name = "KAFKA_BROKER_ID", value = "1" },
-      { name = "KAFKA_ZOOKEEPER_CONNECT", value = "localhost:2181" },
+      { name = "KAFKA_NODE_ID", value = "1" },
+      { name = "KAFKA_PROCESS_ROLES", value = "broker,controller" },
+      { name = "KAFKA_CONTROLLER_QUORUM_VOTERS", value = "1@localhost:9093" },
+      { name = "KAFKA_LISTENERS", value = "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093" },
       { name = "KAFKA_ADVERTISED_LISTENERS", value = "PLAINTEXT://localhost:9092" },
+      { name = "KAFKA_CONTROLLER_LISTENER_NAMES", value = "CONTROLLER" },
+      { name = "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", value = "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT" },
       { name = "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", value = "1" },
-      { name = "KAFKA_PROCESS_ROLES", value = "broker" },
-      { name = "KAFKA_CONTROLLER_QUORUM_VOTERS", value = "" },
+      { name = "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", value = "1" },
+      { name = "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", value = "1" },
       { name = "CLUSTER_ID", value = "MkU3OEVBNTcwNTJENDM2Qk" }
     ]
     logConfiguration = {
@@ -235,17 +239,6 @@ resource "aws_ecs_task_definition" "kafka" {
         "awslogs-stream-prefix" = "ecs"
       }
     }
-  }, {
-    name      = "zookeeper"
-    image     = "confluentinc/cp-zookeeper:latest"
-    essential = true
-    portMappings = [{
-      containerPort = 2181
-    }]
-    environment = [
-      { name = "ZOOKEEPER_CLIENT_PORT", value = "2181" },
-      { name = "ZOOKEEPER_TICK_TIME", value = "2000" }
-    ]
   }])
 }
 
@@ -325,8 +318,8 @@ resource "aws_ecs_task_definition" "user_service" {
   family                   = "user-service"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 256
-  memory                   = 512
+  cpu                      = 512
+  memory                   = 1024
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([{
@@ -363,7 +356,7 @@ resource "aws_ecs_service" "user_service" {
   name            = "user-service"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.user_service.arn
-  desired_count   = 2
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -388,8 +381,8 @@ resource "aws_ecs_task_definition" "order_service" {
   family                   = "order-service"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 256
-  memory                   = 512
+  cpu                      = 512
+  memory                   = 1024
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([{
@@ -426,7 +419,7 @@ resource "aws_ecs_service" "order_service" {
   name            = "order-service"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.order_service.arn
-  desired_count   = 2
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
