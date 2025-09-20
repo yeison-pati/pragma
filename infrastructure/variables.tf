@@ -1,104 +1,74 @@
 variable "aws_region" {
-  description = "The AWS region to deploy resources in."
+  description = "AWS region"
   type        = string
   default     = "us-east-1"
 }
 
 variable "project_name" {
-  description = "The name of the project, used for tagging resources."
+  description = "Project name for resource naming"
   type        = string
-  default     = "java-interview-project"
+  default     = "pragma-microservices"
 }
 
 variable "vpc_cidr" {
-  description = "The CIDR block for the VPC."
+  description = "VPC CIDR block"
   type        = string
   default     = "10.0.0.0/16"
 }
 
 variable "public_subnet_cidrs" {
-  description = "The CIDR blocks for the public subnets."
+  description = "Public subnet CIDR blocks"
   type        = list(string)
   default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
 variable "private_subnet_cidrs" {
-  description = "The CIDR blocks for the private subnets."
+  description = "Private subnet CIDR blocks"
   type        = list(string)
   default     = ["10.0.101.0/24", "10.0.102.0/24"]
 }
 
-variable "instance_type" {
-  description = "The EC2 instance type."
-  type        = string
-  default     = "t2.micro"
-}
-
 variable "docker_username" {
-  description = "Docker Hub username for pulling images"
+  description = "Docker Hub username"
   type        = string
 }
 
 variable "postgres_username" {
-  description = "PostgreSQL database username"
+  description = "PostgreSQL username"
   type        = string
 }
 
 variable "postgres_password" {
-  description = "PostgreSQL database password"
+  description = "PostgreSQL password"
   type        = string
   sensitive   = true
 }
 
+variable "postgres_db" {
+  description = "PostgreSQL database name"
+  type        = string
+  default     = "interview_project_db"
+}
+
 variable "mongodb_username" {
-  description = "MongoDB database username"
+  description = "MongoDB username"
   type        = string
 }
 
 variable "mongodb_password" {
-  description = "MongoDB database password"
+  description = "MongoDB password"
   type        = string
   sensitive   = true
 }
 
-variable "redis_host" {
-  description = "Redis host endpoint"
+variable "mongodb_database" {
+  description = "MongoDB database name"
   type        = string
-  default     = "localhost"
-}
-
-variable "redis_port" {
-  description = "Redis port"
-  type        = number
-  default     = 6379
-}
-
-variable "kafka_host" {
-  description = "Kafka host endpoint"
-  type        = string
-  default     = "localhost"
-}
-
-variable "kafka_port" {
-  description = "Kafka port"
-  type        = number
-  default     = 9092
-}
-
-variable "mongodb_host" {
-  description = "MongoDB host endpoint"
-  type        = string
-  default     = "localhost"
-}
-
-variable "mongodb_port" {
-  description = "MongoDB port"
-  type        = number
-  default     = 27017
+  default     = "orders"
 }
 
 variable "jwt_secret_key" {
-  description = "JWT secret key for token signing"
+  description = "JWT secret key"
   type        = string
   sensitive   = true
 }
