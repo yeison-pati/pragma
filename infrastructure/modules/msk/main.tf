@@ -39,6 +39,10 @@ resource "aws_msk_cluster" "kafka_cluster" {
   kafka_version          = var.kafka_version
   number_of_broker_nodes = 2 # Minimum for a multi-AZ setup for basic availability
 
+  lifecycle {
+    replace_triggered_by = [aws_msk_cluster.kafka_cluster.client_authentication]
+  }
+
   broker_node_group_info {
     instance_type   = "kafka.t3.small"
     client_subnets  = var.private_subnet_ids
