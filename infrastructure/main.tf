@@ -414,11 +414,6 @@ resource "aws_ecs_service" "redis" {
   service_registries {
     registry_arn = aws_service_discovery_service.redis.arn
   }
-
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 0
-  }
 }
 
 # MongoDB Task Definition
@@ -479,11 +474,6 @@ resource "aws_ecs_service" "mongodb" {
 
   service_registries {
     registry_arn = aws_service_discovery_service.mongodb.arn
-  }
-
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 0
   }
 }
 
@@ -582,11 +572,6 @@ resource "aws_ecs_service" "kafka" {
   service_registries {
     registry_arn = aws_service_discovery_service.kafka.arn
   }
-
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 0
-  }
 }
 
 # User Service Task Definition
@@ -684,12 +669,6 @@ resource "aws_ecs_service" "user_service" {
   }
 
   depends_on = [aws_lb_listener.main, aws_ecs_service.redis, aws_ecs_service.kafka]
-
-  # Wait for dependencies to be healthy
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 50
-  }
 }
 
 # Order Service Task Definition
@@ -787,10 +766,4 @@ resource "aws_ecs_service" "order_service" {
   }
 
   depends_on = [aws_lb_listener.main, aws_ecs_service.redis, aws_ecs_service.kafka, aws_ecs_service.mongodb]
-
-  # Wait for dependencies to be healthy
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 50
-  }
 }
