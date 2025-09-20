@@ -47,8 +47,8 @@ jobs:
       - name: "Get ECR Repository URLs"
         id: ecr
         run: |
-          USER_SERVICE_URL=$(terraform -chdir=infrastructure output -raw user_service_repository_url 2>/dev/null | head -n1)
-          ORDER_SERVICE_URL=$(terraform -chdir=infrastructure output -raw order_service_repository_url 2>/dev/null | head -n1)
+          USER_SERVICE_URL=$(cd infrastructure && terraform output -raw user_service_repository_url)
+          ORDER_SERVICE_URL=$(cd infrastructure && terraform output -raw order_service_repository_url)
           echo "user_service_repository_url=$USER_SERVICE_URL" >> $GITHUB_OUTPUT
           echo "order_service_repository_url=$ORDER_SERVICE_URL" >> $GITHUB_OUTPUT
 
