@@ -1,6 +1,8 @@
 # Creates the ECR repository for the User Service
 resource "aws_ecr_repository" "user_service" {
   name = var.user_service_repo_name
+  #eliminar así no esté vacio
+  force_delete = true
 
   image_tag_mutability = "MUTABLE"
 
@@ -12,7 +14,8 @@ resource "aws_ecr_repository" "user_service" {
 # Creates the ECR repository for the Order Service
 resource "aws_ecr_repository" "order_service" {
   name = var.order_service_repo_name
-
+  force_delete = true
+  
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {

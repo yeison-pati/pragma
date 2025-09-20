@@ -31,3 +31,24 @@ build/
 
 ### VS Code ###
 .vscode/
+
+## Local development environment variables
+.env
+/terraform/terraform.tfvars
+/learn-terra/
+
+# Ignore Terraform binary and related files
+*.tfplan
+*.tfplan.*
+terraform_*.zip
+LICENSE.txt
+
+# Ignore Terraform state and modules
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# personal files
+*.txt
+outputs.json

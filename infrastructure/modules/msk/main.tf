@@ -51,9 +51,13 @@ resource "aws_msk_cluster" "kafka_cluster" {
   }
 
   client_authentication {
-    tls {
-      certificate_authority_arns = [] # No client certificate authentication
+    sasl {
+      scram = true
     }
+    tls {
+      certificate_authority_arns = []
+    }
+    unauthenticated = false
   }
 
   encryption_info {
