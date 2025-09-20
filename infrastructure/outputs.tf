@@ -3,12 +3,17 @@ output "alb_dns_name" {
   value       = module.alb.alb_dns_name
 }
 
-output "user_service_repository_url" {
-  description = "The URL of the User Service ECR repository"
-  value       = module.ecr.user_service_repository_url
+output "application_url" {
+  description = "The public URL to access the application"
+  value       = "http://${module.alb.alb_dns_name}"
 }
 
-output "order_service_repository_url" {
-  description = "The URL of the Order Service ECR repository"
-  value       = module.ecr.order_service_repository_url
+output "user_service_url" {
+  description = "The URL for the User Service"
+  value       = "http://${module.alb.alb_dns_name}/api/v1/users"
+}
+
+output "order_service_url" {
+  description = "The URL for the Order Service"
+  value       = "http://${module.alb.alb_dns_name}/api/v1/orders"
 }

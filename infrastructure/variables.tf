@@ -33,3 +33,66 @@ variable "instance_type" {
   type        = string
   default     = "t2.micro"
 }
+
+variable "docker_username" {
+  description = "Docker Hub username for pulling images"
+  type        = string
+}
+
+variable "postgres_username" {
+  description = "PostgreSQL database username"
+  type        = string
+}
+
+variable "postgres_password" {
+  description = "PostgreSQL database password"
+  type        = string
+  sensitive   = true
+}
+
+variable "mongodb_username" {
+  description = "MongoDB database username"
+  type        = string
+}
+
+variable "mongodb_password" {
+  description = "MongoDB database password"
+  type        = string
+  sensitive   = true
+}
+
+variable "redis_host" {
+  description = "Redis host endpoint"
+  type        = string
+  default     = "redis"
+}
+
+variable "redis_port" {
+  description = "Redis port"
+  type        = number
+  default     = 6379
+}
+
+variable "kafka_host" {
+  description = "Kafka host endpoint"
+  type        = string
+  default     = "kafka"
+}
+
+variable "kafka_port" {
+  description = "Kafka port"
+  type        = number
+  default     = 9092
+}
+
+variable "mongodb_host" {
+  description = "MongoDB host endpoint"
+  type        = string
+  default     = "mongodb"
+}
+
+variable "mongodb_port" {
+  description = "MongoDB port"
+  type        = number
+  default     = 27017
+}

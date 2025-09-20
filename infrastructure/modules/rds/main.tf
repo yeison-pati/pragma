@@ -1,15 +1,4 @@
-# Generate random credentials for the database
-resource "random_string" "username" {
-  length  = 8
-  special = false
-  upper   = false
-  numeric = false
-}
-
-resource "random_password" "password" {
-  length  = 16
-  special = false
-}
+# Using provided credentials from variables
 
 # Database Subnet Group
 resource "aws_db_subnet_group" "default" {
@@ -57,8 +46,8 @@ resource "aws_db_instance" "default" {
   engine_version         = "15.8"
   instance_class         = "db.t3.micro"
   db_name                = var.db_name
-  username               = random_string.username.result
-  password               = random_password.password.result
+  username               = var.db_username
+  password               = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.default.name
   vpc_security_group_ids = [aws_security_group.rds.id]
   skip_final_snapshot    = true

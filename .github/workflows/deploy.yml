@@ -1,4 +1,4 @@
-name: Deploy to Amazon ECS
+name: Deploy Microservices to ECS
 
 on:
   push:
@@ -14,15 +14,28 @@ env:
   AWS_REGION: us-east-1
 
 jobs:
-  deploy-ecr:
-    name: "Phase 1: Deploy ECR Repositories"
+  build-and-deploy:
+    name: "Build Images and Deploy Infrastructure"
     runs-on: ubuntu-latest
-    outputs:
-      user_service_ecr_repo_url: ${{ steps.ecr.outputs.user_service_repository_url }}
-      order_service_ecr_repo_url: ${{ steps.ecr.outputs.order_service_repository_url }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v4
+
+      - name: "Login to Docker Hub"
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "Build and push user-service image"
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/user-service:latest ./user-service
+          docker push ${{ secrets.DOCKER_USERNAME }}/user-service:latest
+
+      - name: "Build and push order-service image"
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/order-service:latest ./order-service
+          docker push ${{ secrets.DOCKER_USERNAME }}/order-service:latest
 
       - name: "Configure AWS credentials"
         uses: aws-actions/configure-aws-credentials@v4
@@ -36,104 +49,76 @@ jobs:
           terraform_wrapper: false
 
       - name: "Terraform Init"
-        id: init
         run: terraform -chdir=infrastructure init
 
-      - name: "Terraform Apply ECR"
-        id: apply-ecr
-        run: |
-          terraform -chdir=infrastructure import module.ecr.aws_ecr_repository.user_service user-service || true
-          terraform -chdir=infrastructure import module.ecr.aws_ecr_repository.order_service order-service || true
-          terraform -chdir=infrastructure apply -auto-approve -target="module.ecr"
-
-      - name: "Get Terraform Outputs"
-        run: |
-          terraform -chdir=infrastructure output -json > tf_outputs.json
-          if [[ ! -s tf_outputs.json ]]; then
-            echo "Error: tf_outputs.json is empty or doesn't exist"
-            exit 1
-          fi
-          echo "Terraform outputs saved successfully"
-
-      - name: "Upload tf_outputs.json"
-        uses: actions/upload-artifact@v4
-        with:
-          name: tf_outputs
-          path: tf_outputs.json
-          retention-days: 1
-
-  build-and-push-images:
-    name: "Phase 2: Build and Push Docker Images"
-    needs: deploy-ecr
-    runs-on: ubuntu-latest
-    outputs:
-      user_service_image_url: ${{ steps.build-user-service.outputs.image_url }}
-      order_service_image_url: ${{ steps.build-order-service.outputs.image_url }}
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
-      - name: "Configure AWS credentials"
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: "Download tf_outputs.json"
-        uses: actions/download-artifact@v4
-        with:
-          name: tf_outputs
-
-      - name: "Login to Amazon ECR"
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: "Build, tag, and push user-service image"
-        id: build-user-service
+      - name: "Terraform Plan"
         env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          cat tf_outputs.json
-          ECR_URL=$(jq -r '.user_service_repository_url.value' tf_outputs.json)
-          docker build -t $ECR_URL:$IMAGE_TAG ./user-service
-          docker tag $ECR_URL:$IMAGE_TAG $ECR_URL:latest
-          docker push $ECR_URL --all-tags
-          echo "image_url=${ECR_URL}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          TF_VAR_docker_username: ${{ secrets.DOCKER_USERNAME }}
+          TF_VAR_postgres_username: ${{ secrets.DB_USERNAME }}
+          TF_VAR_postgres_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_mongodb_username: ${{ secrets.DB_USERNAME }}
+          TF_VAR_mongodb_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_redis_host: ${{ secrets.REDIS_HOST || 'redis' }}
+          TF_VAR_redis_port: ${{ secrets.REDIS_PORT || '6379' }}
+          TF_VAR_kafka_host: ${{ secrets.KAFKA_HOST || 'kafka' }}
+          TF_VAR_kafka_port: ${{ secrets.KAFKA_PORT || '9092' }}
+          TF_VAR_mongodb_host: ${{ secrets.MONGODB_HOST || 'mongodb' }}
+          TF_VAR_mongodb_port: ${{ secrets.MONGODB_PORT || '27017' }}
+        run: terraform -chdir=infrastructure plan
 
-      - name: "Build, tag, and push order-service image"
-        id: build-order-service
+      - name: "Terraform Apply"
         env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          ECR_URL=$(jq -r '.order_service_repository_url.value' tf_outputs.json)
-          docker build -t $ECR_URL:$IMAGE_TAG ./order-service
-          docker tag $ECR_URL:$IMAGE_TAG $ECR_URL:latest
-          docker push $ECR_URL --all-tags
-          echo "image_url=${ECR_URL}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
-
-  deploy-main-infra:
-    name: "Phase 3: Deploy Databases & Services"
-    needs: build-and-push-images
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
-      - name: "Configure AWS credentials"
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: "Setup Terraform"
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_wrapper: false
-
-      - name: "Terraform Init"
-        id: init
-        run: terraform -chdir=infrastructure init
-
-      - name: "Terraform Apply All"
-        id: apply-all
+          TF_VAR_docker_username: ${{ secrets.DOCKER_USERNAME }}
+          TF_VAR_postgres_username: ${{ secrets.DB_USERNAME }}
+          TF_VAR_postgres_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_mongodb_username: ${{ secrets.DB_USERNAME }}
+          TF_VAR_mongodb_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_redis_host: ${{ secrets.REDIS_HOST || 'redis' }}
+          TF_VAR_redis_port: ${{ secrets.REDIS_PORT || '6379' }}
+          TF_VAR_kafka_host: ${{ secrets.KAFKA_HOST || 'kafka' }}
+          TF_VAR_kafka_port: ${{ secrets.KAFKA_PORT || '9092' }}
+          TF_VAR_mongodb_host: ${{ secrets.MONGODB_HOST || 'mongodb' }}
+          TF_VAR_mongodb_port: ${{ secrets.MONGODB_PORT || '27017' }}
         run: terraform -chdir=infrastructure apply -auto-approve
+
+      - name: "Get Application URLs"
+        run: |
+          echo "🚀 Deployment Complete!"
+          echo "User Service: $(terraform -chdir=infrastructure output -raw user_service_url)"
+          echo "Order Service: $(terraform -chdir=infrastructure output -raw order_service_url)"
+          echo "Application URL: $(terraform -chdir=infrastructure output -raw application_url)"
+
+  cleanup-on-failure:
+    name: "Cleanup Infrastructure on Failure"
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: failure()
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Configure AWS credentials"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: "Setup Terraform"
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+
+      - name: "Terraform Init"
+        run: terraform -chdir=infrastructure init
+
+      - name: "Terraform Destroy"
+        env:
+          TF_VAR_docker_username: ${{ secrets.DOCKER_USERNAME }}
+          TF_VAR_postgres_username: ${{ secrets.DB_USERNAME }}
+          TF_VAR_postgres_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_mongodb_username: ${{ secrets.DB_USERNAME }}
+          TF_VAR_mongodb_password: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "🧹 Cleaning up failed infrastructure..."
+          terraform -chdir=infrastructure destroy -auto-approve
+          echo "✅ Cleanup completed"

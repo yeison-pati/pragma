@@ -10,12 +10,12 @@ output "db_name" {
 
 output "username" {
   description = "The username for the database."
-  value       = aws_db_instance.default.username
+  value       = var.db_username
   sensitive   = true
 }
 
 output "password" {
   description = "The password for the database."
-  value       = aws_db_instance.default.password
+  value       = var.db_password
   sensitive   = true
 }
