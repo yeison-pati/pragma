@@ -13,7 +13,7 @@ resource "aws_lb" "main" {
 
 # Target group for the User Service
 resource "aws_lb_target_group" "user_service" {
-  name        = "${var.project_name}-tg-user-service"
+  name        = "user-service-tg"
   port        = 8081
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -32,7 +32,7 @@ resource "aws_lb_target_group" "user_service" {
 
 # Target group for the Order Service
 resource "aws_lb_target_group" "order_service" {
-  name        = "${var.project_name}-tg-order-service"
+  name        = "order-service-tg"
   port        = 8082
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
