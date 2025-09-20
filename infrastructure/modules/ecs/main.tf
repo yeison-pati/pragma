@@ -46,7 +46,7 @@ resource "aws_ecs_task_definition" "user_service" {
       { name = "SPRING_DATASOURCE_USERNAME", value = var.rds_username },
       { name = "SPRING_DATASOURCE_PASSWORD", value = var.rds_password },
       { name = "SPRING_DATA_REDIS_HOST", value = var.redis_host },
-      { name = "SPRING_DATA_REDIS_PORT", value = var.redis_port },
+      { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.redis_port) },
       { name = "KAFKA_BOOTSTRAP_SERVERS", value = var.kafka_bootstrap_servers }
     ]
     logConfiguration = {
@@ -78,9 +78,9 @@ resource "aws_ecs_task_definition" "order_service" {
       hostPort      = 8082
     }]
     environment = [
-      { name = "SPRING_DATA_MONGODB_URI", value = "TBD" }, # Will be replaced with DocumentDB endpoint
+      { name = "SPRING_DATA_MONGODB_URI", value = var.mongo_uri },
       { name = "SPRING_DATA_REDIS_HOST", value = var.redis_host },
-      { name = "SPRING_DATA_REDIS_PORT", value = var.redis_port },
+      { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.redis_port) },
       { name = "KAFKA_BOOTSTRAP_SERVERS", value = var.kafka_bootstrap_servers }
     ]
     logConfiguration = {
