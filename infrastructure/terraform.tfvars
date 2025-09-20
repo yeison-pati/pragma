@@ -1,6 +1,0 @@
-docker_username = "dummy"
-postgres_username = "testuser"
-postgres_password = "password123"
-mongodb_username = "testuser"
-mongodb_password = "password123"
-jwt_secret_key = "dummysecret123"
