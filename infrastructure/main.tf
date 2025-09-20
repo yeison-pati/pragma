@@ -251,7 +251,7 @@ resource "aws_lb_listener_rule" "user_service" {
 
   condition {
     path_pattern {
-      values = ["/users/*", "/auth/*"]
+      values = ["/users/*", "/auth/*", "/api/v1/users/*"]
     }
   }
 }
@@ -267,7 +267,7 @@ resource "aws_lb_listener_rule" "order_service" {
 
   condition {
     path_pattern {
-      values = ["/orders/*"]
+      values = ["/orders/*", "/api/v1/orders/*"]
     }
   }
 }
@@ -414,6 +414,11 @@ resource "aws_ecs_service" "redis" {
   service_registries {
     registry_arn = aws_service_discovery_service.redis.arn
   }
+
+  deployment_configuration {
+    maximum_percent         = 200
+    minimum_healthy_percent = 0
+  }
 }
 
 # MongoDB Task Definition
@@ -475,9 +480,14 @@ resource "aws_ecs_service" "mongodb" {
   service_registries {
     registry_arn = aws_service_discovery_service.mongodb.arn
   }
+
+  deployment_configuration {
+    maximum_percent         = 200
+    minimum_healthy_percent = 0
+  }
 }
 
-# Kafka Task Definition
+# Kafka Task Definition (KRaft mode - no Zookeeper needed)
 resource "aws_ecs_task_definition" "kafka" {
   family                   = "kafka"
   network_mode             = "awsvpc"
@@ -489,7 +499,7 @@ resource "aws_ecs_task_definition" "kafka" {
   container_definitions = jsonencode([
     {
       name      = "kafka"
-      image     = "confluentinc/cp-kafka:7.6.1"
+      image     = "apache/kafka:3.7.0"
       essential = true
       portMappings = [
         {
@@ -499,32 +509,48 @@ resource "aws_ecs_task_definition" "kafka" {
       ]
       environment = [
         {
-          name  = "KAFKA_BROKER_ID"
+          name  = "KAFKA_NODE_ID"
           value = "1"
         },
         {
-          name  = "KAFKA_ZOOKEEPER_CONNECT"
-          value = "localhost:2181"
+          name  = "KAFKA_PROCESS_ROLES"
+          value = "broker,controller"
+        },
+        {
+          name  = "KAFKA_CONTROLLER_QUORUM_VOTERS"
+          value = "1@localhost:9093"
+        },
+        {
+          name  = "KAFKA_LISTENERS"
+          value = "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
         },
         {
           name  = "KAFKA_ADVERTISED_LISTENERS"
           value = "PLAINTEXT://kafka.${var.project_name}.local:9092"
         },
         {
-          name  = "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"
-          value = "PLAINTEXT:PLAINTEXT"
+          name  = "KAFKA_CONTROLLER_LISTENER_NAMES"
+          value = "CONTROLLER"
         },
         {
-          name  = "KAFKA_INTER_BROKER_LISTENER_NAME"
-          value = "PLAINTEXT"
+          name  = "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"
+          value = "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
         },
         {
           name  = "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR"
           value = "1"
         },
         {
-          name  = "KAFKA_AUTO_CREATE_TOPICS_ENABLE"
-          value = "true"
+          name  = "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR"
+          value = "1"
+        },
+        {
+          name  = "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR"
+          value = "1"
+        },
+        {
+          name  = "CLUSTER_ID"
+          value = "MkU3OEVBNTcwNTJENDM2Qk"
         }
       ]
       logConfiguration = {
@@ -533,35 +559,6 @@ resource "aws_ecs_task_definition" "kafka" {
           "awslogs-group"         = aws_cloudwatch_log_group.kafka.name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
-        }
-      }
-    },
-    {
-      name      = "zookeeper"
-      image     = "confluentinc/cp-zookeeper:7.6.1"
-      essential = true
-      portMappings = [
-        {
-          containerPort = 2181
-          protocol      = "tcp"
-        }
-      ]
-      environment = [
-        {
-          name  = "ZOOKEEPER_CLIENT_PORT"
-          value = "2181"
-        },
-        {
-          name  = "ZOOKEEPER_TICK_TIME"
-          value = "2000"
-        }
-      ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.kafka.name
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "zookeeper"
         }
       }
     }
@@ -584,6 +581,11 @@ resource "aws_ecs_service" "kafka" {
 
   service_registries {
     registry_arn = aws_service_discovery_service.kafka.arn
+  }
+
+  deployment_configuration {
+    maximum_percent         = 200
+    minimum_healthy_percent = 0
   }
 }
 
@@ -682,6 +684,12 @@ resource "aws_ecs_service" "user_service" {
   }
 
   depends_on = [aws_lb_listener.main, aws_ecs_service.redis, aws_ecs_service.kafka]
+
+  # Wait for dependencies to be healthy
+  deployment_configuration {
+    maximum_percent         = 200
+    minimum_healthy_percent = 50
+  }
 }
 
 # Order Service Task Definition
@@ -779,4 +787,10 @@ resource "aws_ecs_service" "order_service" {
   }
 
   depends_on = [aws_lb_listener.main, aws_ecs_service.redis, aws_ecs_service.kafka, aws_ecs_service.mongodb]
+
+  # Wait for dependencies to be healthy
+  deployment_configuration {
+    maximum_percent         = 200
+    minimum_healthy_percent = 50
+  }
 }
