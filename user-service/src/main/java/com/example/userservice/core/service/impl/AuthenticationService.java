@@ -37,12 +37,21 @@ public class AuthenticationService {
 
     @Transactional
     public AuthenticationResponse registerTransactional(RegisterUserRequest request) {
+        var address = com.example.userservice.core.domain.entity.Address.builder()
+                .street(request.getAddress().getStreet())
+                .city(request.getAddress().getCity())
+                .state(request.getAddress().getState())
+                .zipCode(request.getAddress().getZipCode())
+                .build();
+
         var user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .address(address)
                 .build();
 
+        address.setUser(user);
         User savedUser = userRepository.save(user);
 
         kafkaProducerService.sendUserEvent(
