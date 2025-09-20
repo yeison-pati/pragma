@@ -66,6 +66,23 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+# Listener rule for Authentication (User Service)
+resource "aws_lb_listener_rule" "auth_rule" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 99
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.user_service.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/auth/*"]
+    }
+  }
+}
+
 # Listener rule for User Service
 resource "aws_lb_listener_rule" "user_service_rule" {
   listener_arn = aws_lb_listener.http.arn
@@ -78,7 +95,7 @@ resource "aws_lb_listener_rule" "user_service_rule" {
 
   condition {
     path_pattern {
-      values = ["/api/v1/users*"]
+      values = ["/users/*"]
     }
   }
 }
@@ -95,7 +112,7 @@ resource "aws_lb_listener_rule" "order_service_rule" {
 
   condition {
     path_pattern {
-      values = ["/api/v1/orders*"]
+      values = ["/orders/*"]
     }
   }
 }

@@ -10,10 +10,15 @@ output "application_url" {
 
 output "user_service_url" {
   description = "The URL for the User Service"
-  value       = "http://${module.alb.alb_dns_name}/api/v1/users"
+  value       = "http://${module.alb.alb_dns_name}/users"
 }
 
 output "order_service_url" {
   description = "The URL for the Order Service"
-  value       = "http://${module.alb.alb_dns_name}/api/v1/orders"
+  value       = "http://${module.alb.alb_dns_name}/orders"
+}
+
+output "auth_url" {
+  description = "The URL for Authentication"
+  value       = "http://${module.alb.alb_dns_name}/auth"
 }

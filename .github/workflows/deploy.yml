@@ -58,6 +58,7 @@ jobs:
           TF_VAR_postgres_password: ${{ secrets.DB_PASSWORD }}
           TF_VAR_mongodb_username: ${{ secrets.DB_USERNAME }}
           TF_VAR_mongodb_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_jwt_secret_key: ${{ secrets.JWT_SECRET_KEY }}
           TF_VAR_redis_host: ${{ secrets.REDIS_HOST || 'redis' }}
           TF_VAR_redis_port: ${{ secrets.REDIS_PORT || '6379' }}
           TF_VAR_kafka_host: ${{ secrets.KAFKA_HOST || 'kafka' }}
@@ -73,6 +74,7 @@ jobs:
           TF_VAR_postgres_password: ${{ secrets.DB_PASSWORD }}
           TF_VAR_mongodb_username: ${{ secrets.DB_USERNAME }}
           TF_VAR_mongodb_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_jwt_secret_key: ${{ secrets.JWT_SECRET_KEY }}
           TF_VAR_redis_host: ${{ secrets.REDIS_HOST || 'redis' }}
           TF_VAR_redis_port: ${{ secrets.REDIS_PORT || '6379' }}
           TF_VAR_kafka_host: ${{ secrets.KAFKA_HOST || 'kafka' }}
@@ -118,6 +120,7 @@ jobs:
           TF_VAR_postgres_password: ${{ secrets.DB_PASSWORD }}
           TF_VAR_mongodb_username: ${{ secrets.DB_USERNAME }}
           TF_VAR_mongodb_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_jwt_secret_key: ${{ secrets.JWT_SECRET_KEY }}
         run: |
           echo "🧹 Cleaning up failed infrastructure..."
           terraform -chdir=infrastructure destroy -auto-approve

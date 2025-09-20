@@ -17,9 +17,9 @@ services:
     image: postgres:16-alpine
     container_name: postgres_db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: interview_project_db
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -31,6 +31,9 @@ services:
   mongo:
     image: mongo:7.0
     container_name: mongo_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
     ports:
       - "27017:27017"
     volumes:
@@ -90,12 +93,21 @@ services:
       - postgres
       - kafka
     ports:
-      - "8081:8081" # Puerto expuesto para el user-service
+      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     networks:
       - app-network
     environment:
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SERVER_PORT=${USER_SERVICE_PORT}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=29092
+      - APPLICATION_SECURITY_JWT_SECRET_KEY=${APPLICATION_SECURITY_JWT_SECRET_KEY}
 
   # Microservicio de Órdenes (Spring WebFlux, Reactive MongoDB)
   order-service:
@@ -107,12 +119,21 @@ services:
       - mongo
       - kafka
     ports:
-      - "8082:8082" # Puerto expuesto para el order-service
+      - "${ORDER_SERVICE_PORT}:${ORDER_SERVICE_PORT}"
     networks:
       - app-network
     environment:
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SERVER_PORT=${ORDER_SERVICE_PORT}
+      - MONGODB_HOST=mongo
+      - MONGODB_PORT=27017
+      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=29092
+      - APPLICATION_SECURITY_JWT_SECRET_KEY=${APPLICATION_SECURITY_JWT_SECRET_KEY}
 
 
 # Volúmenes para persistir los datos de las bases de datos

@@ -339,7 +339,8 @@ resource "aws_ecs_task_definition" "user_service" {
       { name = "SPRING_DATASOURCE_PASSWORD", value = var.postgres_password },
       { name = "SPRING_DATA_REDIS_HOST", value = "redis.${var.project_name}.local" },
       { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.redis_port) },
-      { name = "KAFKA_BOOTSTRAP_SERVERS", value = "kafka.${var.project_name}.local:${var.kafka_port}" }
+      { name = "SPRING_KAFKA_BOOTSTRAP_SERVERS", value = "kafka.${var.project_name}.local:${var.kafka_port}" },
+      { name = "APPLICATION_SECURITY_JWT_SECRET_KEY", value = var.jwt_secret_key }
     ]
     logConfiguration = {
       logDriver = "awslogs"
@@ -396,7 +397,8 @@ resource "aws_ecs_task_definition" "order_service" {
       { name = "SPRING_DATA_MONGODB_URI", value = "mongodb://${var.mongodb_username}:${var.mongodb_password}@mongodb.${var.project_name}.local:${var.mongodb_port}/orders?authSource=admin" },
       { name = "SPRING_DATA_REDIS_HOST", value = "redis.${var.project_name}.local" },
       { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.redis_port) },
-      { name = "KAFKA_BOOTSTRAP_SERVERS", value = "kafka.${var.project_name}.local:${var.kafka_port}" }
+      { name = "SPRING_KAFKA_BOOTSTRAP_SERVERS", value = "kafka.${var.project_name}.local:${var.kafka_port}" },
+      { name = "APPLICATION_SECURITY_JWT_SECRET_KEY", value = var.jwt_secret_key }
     ]
     logConfiguration = {
       logDriver = "awslogs"

@@ -96,3 +96,9 @@ variable "mongodb_port" {
   type        = number
   default     = 27017
 }
+
+variable "jwt_secret_key" {
+  description = "JWT secret key for token signing"
+  type        = string
+  sensitive   = true
+}
