@@ -91,6 +91,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          cat tf_outputs.json
           ECR_URL=$(jq -r '.user_service_repository_url.value' tf_outputs.json)
           docker build -t $ECR_URL:$IMAGE_TAG ./user-service
           docker tag $ECR_URL:$IMAGE_TAG $ECR_URL:latest
